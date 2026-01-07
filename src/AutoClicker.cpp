@@ -2,72 +2,77 @@
 #include <windows.h>
 #include <iostream>
 #include <fstream>
-void pressEnter(){
+void pressKey(WORD vk){
     INPUT input = {0};
 
-    // ENTER DOWN
+    //Key Down
     input.type = INPUT_KEYBOARD;
-    input.ki.wVk = VK_RETURN;
+    input.ki.wVk = vk;
     SendInput(1, &input, sizeof(INPUT));
 
     Sleep(30);
 
-    // ENTER UP
+    //Key Up
     input.ki.dwFlags = KEYEVENTF_KEYUP;
     SendInput(1, &input, sizeof(INPUT));
 }
-void AutoClicker::typeString(std::string str){
+void typeChar(char c){
+    INPUT input = {0};
+    bool pressShift = c == '?';
+    input.type = INPUT_KEYBOARD;
 
-    INPUT input = {};
-    for(char c : str){
-        bool pressShift = c == '?';
-        input.type = INPUT_KEYBOARD;
-
-        if(pressShift){
-            input.ki.wVk = VK_LSHIFT;
-            input.ki.dwFlags = 0;
-            SendInput(1,&input,sizeof(INPUT));
-        }
-
-        input.ki.wVk = VkKeyScanA(c);
+    if(pressShift){
+        input.ki.wVk = VK_LSHIFT;
         input.ki.dwFlags = 0;
         SendInput(1,&input,sizeof(INPUT));
-        
-        if(pressShift){
-            input.ki.wVk = VK_LSHIFT;
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1,&input,sizeof(INPUT));
-        }
+    }
 
-        Sleep(50);
+    input.ki.wVk = VkKeyScanA(c);
+    input.ki.dwFlags = 0;
+    SendInput(1,&input,sizeof(INPUT));
+    
+    if(pressShift){
+        input.ki.wVk = VK_LSHIFT;
         input.ki.dwFlags = KEYEVENTF_KEYUP;
         SendInput(1,&input,sizeof(INPUT));
+    }
+    
+    Sleep(50);
+    input.ki.wVk = VkKeyScanA(c);
+    input.ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(1,&input,sizeof(INPUT));
+}
 
-        Sleep(50);
-        
+void AutoClicker::typeString(std::string str){
+    for(char c : str){
+        typeChar(c);
+
         if(GetAsyncKeyState('Z') && (c != 'Z' && c != 'z')){
             stopClicker();
             return;
         }
     }
 }
-
-void AutoClicker::makeSearch(std::string str){
-    //Hover on search bar
-    SetCursorPos(148,54);
+void clickAt(unsigned int x,unsigned int y){
+    //Hover
+    SetCursorPos(x,y);
     Sleep(10);
 
-    //Click on search bar
+    //Click
     mouse_event(MOUSEEVENTF_LEFTDOWN,0,0,0,0);
     Sleep(6);
     mouse_event(MOUSEEVENTF_LEFTUP,0,0,0,0);
     Sleep(10);
+}
+void AutoClicker::makeSearch(std::string str){
+    //click on search bar
+    clickAt(148,54);
 
     //Type
     typeString(str);
 
     //Press enter
-    pressEnter();
+    pressKey(VK_RETURN);
     
 
     //Wait
@@ -103,14 +108,17 @@ void AutoClicker::stopClicker(){
 }
 void AutoClicker::run(){
     while(1){
-        if(running){
+         while (true) {
+
+        if (running)
             startClicker();
-            if(GetAsyncKeyState('Z')){
-                stopClicker();
-            }
-        }
-        if(GetAsyncKeyState('X')){
+
+        // Hotkeys
+        if (GetAsyncKeyState('Z') && running)
+            stopClicker();
+
+        if (GetAsyncKeyState('X') && !running)
             startClicker();
-        }
+    }
     }
 }
